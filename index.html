@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Galería de Perros</title>
+
+  <!-- Bootstrap CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+
+    .galeria.fade {
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .galeria {
+      transition: opacity 0.5s ease;
+    }
+
+    .card img {
+      height: 220px;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-dark mb-4">
+  <div class="container">
+    <span class="navbar-brand mb-0 h1">🐾 Perros de Razas Diferentes</span>
+  </div>
+</nav>
+
+<div class="container text-center">
+
+  <p class="text-muted">
+    Galería que se actualiza automáticamente cada 20 segundos
+  </p>
+
+  <!-- Loader -->
+  <div id="loader" class="my-3 d-none">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2">Cargando nuevos perritos...</p>
+  </div>
+
+  <!-- Galería -->
+  <div id="galeria" class="row galeria"></div>
+
+</div>
+
+<script>
+  const galeria = document.getElementById("galeria");
+
+  async function cargarPerros() {
+    // 1. Obtener razas
+    const resRazas = await fetch("https://dog.ceo/api/breeds/list/all");
+    const dataRazas = await resRazas.json();
+    const razas = Object.keys(dataRazas.message);
+
+    const seleccion = razas
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 10);
+
+    // 2. Pedir imágenes en paralelo
+    const promesas = seleccion.map(raza =>
+      fetch(`https://dog.ceo/api/breed/${raza}/images/random`)
+        .then(res => res.json())
+        .then(data => ({
+          raza,
+          img: data.message
+        }))
+    );
+
+    const perros = await Promise.all(promesas);
+
+    // 3. Construir HTML en segundo plano
+    const fragmento = document.createDocumentFragment();
+
+    perros.forEach(perro => {
+      const col = document.createElement("div");
+      col.className = "col-sm-6 col-md-4 col-lg-3 mb-4";
+
+      col.innerHTML = `
+        <div class="card shadow-sm h-100">
+          <img src="${perro.img}" class="card-img-top" alt="${perro.raza}">
+          <div class="card-body text-center">
+            <h6 class="card-title text-capitalize">${perro.raza}</h6>
+          </div>
+        </div>
+      `;
+
+      fragmento.appendChild(col);
+    });
+
+    // 4. Swap limpio (un solo cambio visual)
+    galeria.replaceChildren(fragmento);
+  }
+
+  // Primera carga
+  cargarPerros();
+
+  // 🔁 Actualización silenciosa cada 20s
+  setInterval(cargarPerros, 20000);
+</script>
+
+
+</body>
+</html>
